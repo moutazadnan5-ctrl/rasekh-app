@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة راسخ - إدارة الحلقات القرآنية المؤسسية</title>
+    <link rel="icon" href="https://img.icons8.com/fluency/48/mosque.png" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+        // إعداد ألوان النظام (Tailwind)
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { extend: { colors: { primary: '#10b981', surface: '#0b1326', 'surface-container': '#16223b' } } } 
+        }
+    </script>
+</head>
+<body class="pb-28 text-xs md:text-sm">
+
+    <div id="toast-container" class="fixed top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none"></div>
+
+    <div id="login-overlay" class="fixed inset-0 z-[100] bg-surface flex items-center justify-center p-4 flex-col">
+        <div class="max-w-md w-full bg-surface-container p-8 rounded-[3rem] shadow-2xl text-center relative overflow-hidden border border-white/5">
+            <div class="mb-6 flex flex-col items-center justify-center">
+                <img id="login-mosque-logo" src="" alt="شعار المسجد" class="w-24 h-24 object-contain mb-3 hidden rounded-full border-2 border-primary/20 p-1 bg-surface">
+                <span id="login-default-icon" class="material-symbols-outlined text-6xl text-primary mb-2">mosque</span>
+                <h1 id="login-mosque-name" class="text-xl font-bold text-emerald-400">جاري الاتصال بالنظام...</h1>
+                <p class="text-xs text-gray-400 mt-1">نظام <span class="font-bold text-white">"راسخ"</span> المؤسسي</p>
+            </div>
+            
+            <input type="email" id="auth-email" placeholder="البريد الإلكتروني المؤسسي" class="w-full p-4 mb-4 text-left rounded-xl font-mono" dir="ltr">
+            <input type="password" id="auth-password" placeholder="كلمة المرور" class="w-full p-4 mb-6 text-center rounded-xl text-lg tracking-widest font-mono" dir="ltr">
+            
+            <button id="login-btn" class="w-full bg-primary text-surface font-bold py-4 rounded-2xl mb-4 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined">login</span> دخول آمن للمنصة
+            </button>
+        </div>
+        <div class="mt-6 text-[10px] text-gray-500 font-bold tracking-wider">المطوّر: moh.moutazad@gmail.com</div>
+    </div>
+
+    <div id="time-fence-overlay" class="fixed inset-0 z-[95] bg-surface/95 backdrop-blur-md hidden items-center justify-center p-4 flex-col text-center">
+        <span class="material-symbols-outlined text-7xl text-red-500 mb-4">lock_clock</span>
+        <h2 class="text-2xl font-bold text-white mb-2">بوابة الإدخال مغلقة</h2>
+        <p id="time-fence-msg" class="text-gray-400 text-center max-w-md leading-relaxed">انتهى وقت الدوام المخصص للإدخال بتوقيت دمشق.<br><span class="text-[10px] text-red-400 mt-2 block">(أي محاولة تعديل سيتم رفضها برمجياً من قاعدة البيانات)</span></p>
+        <button id="btn-force-logout" class="mt-8 bg-surface-container border border-white/10 px-8 py-3 rounded-xl text-white font-bold hover:bg-red-500/20 transition-all shadow-lg">تسجيل الخروج</button>
+    </div>
+    <div id="settings-modal" class="fixed inset-0 z-[300] hidden modal-overlay bg-black/80 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-2xl p-6 md:p-8 rounded-[2rem] shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar text-right border border-emerald-500/20">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="settings-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-xl font-bold mb-6 text-emerald-400 flex items-center gap-2"><span class="material-symbols-outlined">settings</span> إعدادات المنصة المركزية</h2>
+            <form id="settings-form" class="space-y-6">
+                <div class="bg-surface p-4 rounded-xl border border-white/5">
+                    <h3 class="text-sm font-bold text-white mb-3 border-b border-white/10 pb-2">الهوية البصرية</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="text-[10px] text-gray-400">اسم المسجد / المركز</label><input type="text" id="set_mosque_name" class="p-3 mt-1 text-sm font-bold text-emerald-300" required></div>
+                        <div><label class="text-[10px] text-gray-400">الشعار (Base64)</label><input type="file" id="set_mosque_logo" accept="image/*" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary/20 file:text-primary mt-1"><input type="hidden" id="set_mosque_logo_base64"></div>
+                    </div>
+                </div>
+                <div class="bg-surface p-4 rounded-xl border border-white/5">
+                    <h3 class="text-sm font-bold text-white mb-3 border-b border-white/10 pb-2">بوابة الزمن وأيام الدوام</h3>
+                    <div class="flex flex-wrap gap-2 mb-4" id="set_attendance_days">
+                        <label class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-lg text-xs cursor-pointer"><input type="checkbox" value="السبت" class="rounded text-primary"> السبت</label>
+                        <label class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-lg text-xs cursor-pointer"><input type="checkbox" value="الأحد" class="rounded text-primary"> الأحد</label>
+                        <label class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-lg text-xs cursor-pointer"><input type="checkbox" value="الإثنين" class="rounded text-primary"> الإثنين</label>
+                        <label class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-lg text-xs cursor-pointer"><input type="checkbox" value="الثلاثاء" class="rounded text-primary"> الثلاثاء</label>
+                        <label class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-lg text-xs cursor-pointer"><input type="checkbox" value="الأربعاء" class="rounded text-primary"> الأربعاء</label>
+                        <label class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-lg text-xs cursor-pointer"><input type="checkbox" value="الخميس" class="rounded text-primary"> الخميس</label>
+                        <label class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-lg text-xs cursor-pointer"><input type="checkbox" value="الجمعة" class="rounded text-primary"> الجمعة</label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <select id="set_time_fence_mode" class="p-3 mt-1 text-xs"><option value="always_open">مفتوح دائماً</option><option value="scheduled">مجدول</option><option value="force_closed">إغلاق قسري (طوارئ)</option></select>
+                        </div>
+                        <div id="schedule_times_container" class="flex gap-2 opacity-50 pointer-events-none transition-opacity">
+                            <div class="flex-1"><label class="text-[10px] text-gray-400">من الساعة</label><input type="time" id="set_time_start" class="p-3 mt-1 text-xs text-center" dir="ltr"></div>
+                            <div class="flex-1"><label class="text-[10px] text-gray-400">إلى الساعة</label><input type="time" id="set_time_end" class="p-3 mt-1 text-xs text-center" dir="ltr"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-surface p-4 rounded-xl border border-white/5">
+                    <h3 class="text-sm font-bold text-white mb-3 border-b border-white/10 pb-2">أتمتة المراسلات</h3>
+                    <textarea id="set_wa_teacher" rows="3" class="p-3 mt-1 mb-2 text-[11px] text-emerald-100 w-full" placeholder="قالب الأستاذ"></textarea>
+                    <textarea id="set_wa_student" rows="2" class="p-3 mt-1 text-[11px] text-emerald-100 w-full" placeholder="قالب الطالب"></textarea>
+                </div>
+                <button type="button" id="btn-save-settings" class="w-full bg-primary text-surface font-bold py-4 rounded-xl shadow-lg hover:scale-[1.02] transition-transform text-sm">حفظ الإعدادات وتحديث السيرفر</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="teacher-modal" class="fixed inset-0 z-[200] hidden modal-overlay bg-black/60 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-lg p-6 rounded-[2rem] shadow-2xl relative">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="teacher-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-xl font-bold mb-6 text-primary">إضافة كادر جديد</h2>
+            <form id="teacher-form" class="space-y-4">
+                <input type="hidden" name="id">
+                <div class="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+                    <label class="text-[10px] text-blue-300 mb-1 block">معرف الدخول (Auth UID)</label>
+                    <input type="text" name="auth_user_id" placeholder="UID من Supabase Auth" class="p-3 text-xs tracking-widest text-center border-blue-500/50 font-mono" required>
+                </div>
+                <input type="text" name="full_name" placeholder="الاسم الثلاثي" required class="p-3">
+                <input type="text" name="phone_number" placeholder="رقم الواتساب" class="p-3 font-mono" dir="ltr">
+                <select name="role" class="p-3" required>
+                    <option value="مدرس حلقة">مدرس حلقة</option>
+                    <option value="محرر إداري ثاني">مشرف تنفيذي</option>
+                    <option value="محرر إداري أول">محرر إداري أول</option>
+                    <option value="مشاهد للمنصة">مشاهد (لجان رقابة)</option>
+                </select>
+                <div class="border-t border-white/5 pt-4 mt-2">
+                    <label class="text-[10px] text-emerald-400 font-bold block mb-2">تخصيص الحلقات</label>
+                    <div id="teacher_assigned_rings_add" class="flex flex-wrap gap-2 bg-surface p-3 rounded-xl border border-white/5"></div>
+                </div>
+                <button type="submit" class="w-full bg-primary text-surface font-black py-4 rounded-xl mt-2 hover:brightness-110">تأكيد الكادر</button>
+            </form>
+        </div>
+    </div>
+    <div id="ring-modal" class="fixed inset-0 z-[200] hidden modal-overlay bg-black/60 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-lg p-6 rounded-[2rem] shadow-2xl relative">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="ring-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-xl font-bold mb-6 text-primary">إنشاء حلقة جديدة</h2>
+            <form id="ring-form" class="space-y-4">
+                <input type="hidden" name="id">
+                <input type="text" name="ring_name" placeholder="اسم الحلقة" required class="p-3">
+                <select id="r_teacher" name="teacher_id" class="p-3" required></select>
+                <button type="submit" class="w-full bg-primary text-surface font-black py-4 rounded-xl hover:brightness-110">إنشاء الحلقة</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="student-modal" class="fixed inset-0 z-[200] hidden modal-overlay bg-black/60 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-lg p-6 rounded-[2rem] shadow-2xl relative">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="student-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-xl font-bold mb-6 text-primary">تسجيل طالب</h2>
+            <form id="student-form" class="space-y-4">
+                <input type="hidden" name="id">
+                <input type="text" name="full_name" placeholder="الاسم الرباعي" required class="p-3">
+                <select id="s_ring" name="ring_id" required class="p-3"></select>
+                <input type="text" name="phone_number" placeholder="رقم هاتف ولي الأمر" class="p-3 font-mono" dir="ltr">
+                <button type="submit" class="w-full bg-primary text-surface font-black py-4 rounded-xl hover:brightness-110">اعتماد الطالب</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="sard-modal" class="fixed inset-0 z-[250] hidden modal-overlay bg-black/80 items-center justify-center p-2">
+        <div class="bg-surface-container w-full max-w-2xl p-4 md:p-6 rounded-[2rem] shadow-2xl relative text-center">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="sard-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-lg font-bold mb-2 text-white">متانة السرد</h2>
+            <div class="flex gap-2 justify-center mb-4">
+                <div class="w-1/3"><input type="number" id="sard_n" placeholder="نقرات (-10)" class="p-2 text-center text-xs rounded-lg w-full"></div>
+                <div class="w-1/3"><input type="number" id="sard_r" placeholder="ردات (-20)" class="p-2 text-center text-xs rounded-lg w-full"></div>
+                <div class="w-1/3 p-2 text-center text-sm bg-surface rounded-lg text-emerald-400 font-bold border border-emerald-500/30">المتانة: <span id="sard_m_display">-</span></div>
+            </div>
+            <div class="flex flex-wrap gap-1 justify-center max-h-[40vh] overflow-y-auto custom-scrollbar p-2 bg-surface rounded-xl" id="sard-parts-container"></div>
+            <div class="flex gap-2 mt-4">
+                <button type="button" id="btn-clear-sard" class="w-1/4 bg-surface text-white py-3 rounded-xl border border-white/5 hover:bg-white/10">مسح</button>
+                <button type="button" id="btn-save-sard" class="w-3/4 bg-primary text-surface font-bold py-3 rounded-xl hover:scale-[1.02] transition-transform">تأكيد وحفظ التقييم</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="exam-modal" class="fixed inset-0 z-[250] hidden modal-overlay bg-black/80 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-md p-6 rounded-[2rem] shadow-2xl relative text-center">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="exam-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-xl font-bold mb-4 text-white">توثيق أجزاء الاختبار</h2>
+            <div class="flex flex-wrap gap-2 justify-center mb-6" id="exam-parts-container"></div>
+            <button type="button" id="btn-save-exam" class="w-full bg-primary text-surface font-bold py-3 rounded-xl hover:brightness-110">اعتماد الأجزاء</button>
+        </div>
+    </div>
+    <div id="archive-modal" class="fixed inset-0 z-[300] hidden modal-overlay bg-black/80 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-md p-6 rounded-[2rem] shadow-2xl relative text-right border border-emerald-500/20">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="archive-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-xl font-bold mb-4 text-emerald-400 flex items-center gap-2"><span class="material-symbols-outlined">inventory_2</span> مركز التصدير المتقدم</h2>
+            <div class="space-y-4 mb-6">
+                <label class="flex gap-3 p-3 bg-surface rounded-xl border border-white/5"><input type="checkbox" id="exp_teachers" class="rounded text-primary w-4 h-4 focus:ring-primary" checked><span class="text-sm font-bold">بيانات الكوادر</span></label>
+                <label class="flex gap-3 p-3 bg-surface rounded-xl border border-white/5"><input type="checkbox" id="exp_rings" class="rounded text-primary w-4 h-4 focus:ring-primary" checked><span class="text-sm font-bold">هيكلية الحلقات</span></label>
+                <label class="flex gap-3 p-3 bg-surface rounded-xl border border-white/5"><input type="checkbox" id="exp_students" class="rounded text-primary w-4 h-4 focus:ring-primary" checked><span class="text-sm font-bold">ذاتيات الطلاب</span></label>
+                <div class="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                    <label class="flex gap-3 mb-3"><input type="checkbox" id="exp_achievements" class="rounded text-primary w-4 h-4" checked><span class="text-sm font-bold text-emerald-300">المحصلات التراكمية</span></label>
+                    <div id="exp_dates" class="flex gap-2"><input type="date" id="exp_start_date" class="p-2 text-xs rounded-lg w-full bg-surface border border-white/5 font-mono"><input type="date" id="exp_end_date" class="p-2 text-xs rounded-lg w-full bg-surface border border-white/5 font-mono"></div>
+                </div>
+                <select id="exp_format" class="w-full p-2 text-xs rounded-lg bg-surface-container border border-white/10"><option value="single">ملف إكسل واحد (تبويبات)</option><option value="zip">فصل كل حلقة بملف إكسل (ZIP)</option></select>
+            </div>
+            <button type="button" id="btn-execute-export" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 hover:bg-emerald-500 transition-colors"><span class="material-symbols-outlined">download</span> بدء التصدير</button>
+        </div>
+    </div>
+
+    <div id="sync-modal" class="fixed inset-0 z-[300] hidden modal-overlay bg-black/80 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-lg p-6 rounded-[2rem] shadow-2xl relative text-right border border-blue-500/20">
+            <button type="button" class="btn-close-modal absolute top-4 left-4 text-gray-400 hover:text-white" data-target="sync-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-xl font-bold mb-4 text-blue-400 flex items-center gap-2"><span class="material-symbols-outlined">cloud_sync</span> المزامنة الذكية</h2>
+            <div class="bg-blue-500/10 p-4 rounded-xl mb-6 text-center border border-blue-500/20">
+                <h3 class="text-sm font-bold text-white mb-2">سحب قاعدة البيانات</h3>
+                <button type="button" id="btn-download-backup" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-xs font-bold hover:bg-blue-500">تحميل JSON</button>
+            </div>
+            <div class="bg-surface p-4 rounded-xl border border-white/5">
+                <h3 class="text-sm font-bold text-white mb-2">دمج واستعادة</h3>
+                <input type="file" id="backup_file_input" accept=".json" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:bg-surface-container file:text-white mb-4 hover:file:bg-white/10 transition-colors">
+                <div id="sync_analysis_result" class="hidden bg-surface-container p-3 rounded-lg mb-4 text-xs text-emerald-300 border border-white/5"></div>
+                <div id="sync_conflict_resolution" class="hidden mb-4">
+                    <select id="sync_resolution_choice" class="w-full p-2 text-xs rounded-lg bg-surface-container border border-yellow-500/30">
+                        <option value="smart">استيراد آمن (حسب الأحدث)</option><option value="keep_current">الاحتفاظ بالحالي</option><option value="overwrite">فرض الطوارئ</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" id="btn_analyze_sync" class="flex-1 bg-surface-container text-white py-2.5 rounded-lg text-xs font-bold border border-white/10 hover:bg-white/5">فحص الملف</button>
+                    <button type="button" id="btn_execute_sync" class="flex-1 bg-red-600 text-white py-2.5 rounded-lg text-xs font-bold hidden hover:bg-red-500">تنفيذ الاستعادة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="teacher-details-modal" class="fixed inset-0 z-[250] hidden modal-overlay bg-black/60 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 md:p-8 rounded-[2rem] shadow-2xl relative custom-scrollbar">
+            <button type="button" class="btn-close-modal absolute top-6 left-6 text-gray-400 hover:text-white" data-target="teacher-details-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-2xl font-bold mb-6 text-emerald-400 flex items-center gap-2"><span class="material-symbols-outlined">badge</span> ذاتية الكادر</h2>
+            <form id="teacher-details-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="hidden" name="id">
+                <div class="col-span-1 md:col-span-2 bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+                    <input type="text" name="auth_user_id" class="w-full p-2 text-xs tracking-widest text-center border-none font-mono bg-transparent text-blue-300" placeholder="Auth UID" required>
+                </div>
+                <input type="text" name="full_name" placeholder="الاسم" required class="p-3">
+                <input type="text" name="phone_number" placeholder="الهاتف" class="p-3 font-mono" dir="ltr">
+                <select name="role" class="p-3" required><option value="مدرس حلقة">مدرس حلقة</option><option value="محرر إداري ثاني">مشرف تنفيذي</option><option value="محرر إداري أول">محرر إداري أول</option><option value="مشاهد للمنصة">مشاهد رقابي</option></select>
+                <select name="marital_status" class="p-3"><option value="أعزب">الحالة: أعزب</option><option value="متزوج">الحالة: متزوج</option></select>
+                <div class="col-span-1 md:col-span-2 mt-4 border-t border-white/5 pt-4">
+                    <label class="text-[10px] text-emerald-400 font-bold block mb-3">تخصيص الحلقات</label>
+                    <div id="teacher_assigned_rings_edit" class="flex flex-wrap gap-2 bg-surface p-4 rounded-xl border border-white/5"></div>
+                </div>
+                <button type="submit" class="md:col-span-2 bg-primary text-surface font-black py-4 rounded-xl mt-4 hover:scale-[1.01] transition-transform">تحديث الذاتية</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="student-details-modal" class="fixed inset-0 z-[250] hidden modal-overlay bg-black/60 items-center justify-center p-4">
+        <div class="bg-surface-container w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 md:p-8 rounded-[2rem] shadow-2xl relative custom-scrollbar">
+            <button type="button" class="btn-close-modal absolute top-6 left-6 text-gray-400 hover:text-white" data-target="student-details-modal"><span class="material-symbols-outlined">close</span></button>
+            <h2 class="text-2xl font-bold mb-6 text-emerald-400 flex items-center gap-2"><span class="material-symbols-outlined">contact_page</span> ذاتية الطالب</h2>
+            <form id="student-details-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="hidden" name="id">
+                <input type="text" name="full_name" placeholder="الاسم الرباعي" required class="p-3">
+                <input type="text" name="father_name" placeholder="اسم الأب" class="p-3">
+                <input type="text" name="phone_number" placeholder="هاتف ولي الأمر" class="p-3 font-mono" dir="ltr">
+                <select id="sd_ring" name="ring_id" required class="p-3"></select>
+                <select name="status" class="p-3"><option value="فعال">فعال</option><option value="منقطع">منقطع</option></select>
+                <button type="submit" class="md:col-span-3 bg-primary text-surface font-black py-4 rounded-xl mt-4 hover:scale-[1.01] transition-transform">حفظ</button>
+            </form>
+        </div>
+    </div>
+    <main class="container mx-auto px-2 md:px-4 pt-4">
+        
+        <section id="attendance-page" class="page-section active">
+            <header class="mb-4 flex flex-col md:flex-row justify-between items-center gap-3 bg-surface-container p-3 rounded-2xl border border-white/5 shadow-lg">
+                <div class="text-center md:text-right">
+                    <h1 class="text-xl font-extrabold text-white">مساحة التفقد</h1>
+                    <div class="text-[10px] text-gray-500 mt-1 flex justify-center md:justify-start items-center gap-1">
+                        <span id="sync-status" class="text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">cloud_done</span> متصل</span> 
+                        <span class="mx-1">|</span> <span id="user-profile-name" class="text-emerald-300 font-bold"></span>
+                    </div>
+                </div>
+                <div class="flex gap-2 bg-surface p-1 rounded-xl border border-white/5">
+                    <button id="tab-att-students" class="px-6 py-2 rounded-lg font-bold bg-primary text-surface text-xs shadow-md transition-all">الطلاب</button>
+                    <button id="tab-att-teachers" class="px-6 py-2 rounded-lg font-bold text-gray-400 hover:text-white text-xs hidden transition-all">الكوادر</button>
+                </div>
+                <div class="flex gap-2">
+                    <div class="bg-surface flex items-center px-2 rounded-xl relative border border-white/5">
+                        <span id="date-day-name" class="text-[10px] font-bold ml-1 whitespace-nowrap"></span>
+                        <span id="date-day-badge" class="absolute -top-2 -right-2 text-[8px] px-2 py-0.5 rounded-full text-white hidden shadow-md"></span>
+                        <input type="date" id="attendance-date" class="p-2 text-xs bg-transparent border-none w-32 font-mono text-center cursor-pointer">
+                    </div>
+                    <select id="ring-filter" class="p-2 text-xs w-36 rounded-xl bg-surface border border-white/5"></select>
+                </div>
+            </header>
+            
+            <div id="att-students-area" class="bg-surface-container rounded-[1.5rem] overflow-x-auto border border-white/5 shadow-xl pb-2">
+                <table class="w-full text-right min-w-[700px]">
+                    <thead class="bg-surface/80 text-gray-400 text-[10px] border-b border-white/5 uppercase">
+                        <tr><th class="p-3 w-1/4">الطالب</th><th class="p-3 text-center w-16">ح/غ</th><th class="p-3 text-center w-12">ص</th><th class="p-3 text-center w-12">آخر</th><th class="p-3 text-center w-24">سرد</th><th class="p-3 text-center w-16">اختبار</th><th class="p-3 text-center w-16">النتيجة</th><th class="p-3 w-32">ملاحظات</th></tr>
+                    </thead>
+                    <tbody id="attendance-grid"></tbody>
+                </table>
+            </div>
+            
+            <div id="att-teachers-area" class="hidden bg-surface-container rounded-[1.5rem] overflow-x-auto border border-white/5 shadow-xl pb-2">
+                <table class="w-full text-right min-w-[500px]">
+                    <thead class="bg-surface/80 text-gray-400 text-[10px] border-b border-white/5 uppercase">
+                        <tr><th class="p-4 w-1/3">الكادر</th><th class="p-3 text-center w-24">الحضور</th><th class="p-4">ملاحظات والتزام</th></tr>
+                    </thead>
+                    <tbody id="attendance-teachers-grid"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="admin-page" class="page-section">
+            <div class="flex flex-wrap justify-between mb-6 gap-3 items-center">
+                <h1 class="text-2xl font-extrabold text-white flex items-center gap-2"><span class="material-symbols-outlined text-primary text-3xl">admin_panel_settings</span> الإدارة والتحكم</h1>
+                <div class="flex gap-2 flex-wrap">
+                    <button id="btn-sync-modal" class="btn-open-modal hidden bg-blue-500/20 text-blue-400 px-3 py-2 rounded-xl text-xs hover:bg-blue-500 hover:text-white transition-colors flex items-center gap-1" data-target="sync-modal"><span class="material-symbols-outlined text-[16px]">cloud_sync</span> المزامنة</button>
+                    <button id="btn-archive-modal" class="btn-open-modal hidden bg-emerald-500/20 text-emerald-400 px-3 py-2 rounded-xl text-xs hover:bg-emerald-500 hover:text-white transition-colors flex items-center gap-1" data-target="archive-modal"><span class="material-symbols-outlined text-[16px]">inventory_2</span> الأرشيف</button>
+                    <button id="btn-settings-modal" class="btn-open-modal hidden bg-surface border border-white/10 text-white px-3 py-2 rounded-xl text-xs hover:bg-white/5 transition-colors flex items-center gap-1" data-target="settings-modal"><span class="material-symbols-outlined text-[16px]">settings</span> الإعدادات</button>
+                </div>
+            </div>
+            <div class="space-y-5">
+                <div class="bg-surface-container p-5 rounded-3xl border border-white/5 shadow-xl">
+                    <div class="flex justify-between mb-4 items-center"><h2 class="text-sm font-bold text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">groups</span> الكوادر</h2><button class="btn-open-modal bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-primary hover:text-surface transition-colors flex items-center gap-1" data-target="teacher-modal"><span class="material-symbols-outlined text-[14px]">add</span> إضافة</button></div>
+                    <div class="overflow-x-auto custom-scrollbar pb-2"><table class="w-full text-right text-[11px] min-w-[450px]"><tbody id="admin-teachers-list"></tbody></table></div>
+                </div>
+                <div class="bg-surface-container p-5 rounded-3xl border border-white/5 shadow-xl">
+                    <div class="flex justify-between mb-4 items-center"><h2 class="text-sm font-bold text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">trip_origin</span> الحلقات</h2><button class="btn-open-modal bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-primary hover:text-surface transition-colors flex items-center gap-1" data-target="ring-modal"><span class="material-symbols-outlined text-[14px]">add</span> إضافة</button></div>
+                    <div class="overflow-x-auto custom-scrollbar pb-2"><table class="w-full text-right text-[11px] min-w-[300px]"><tbody id="admin-rings-list"></tbody></table></div>
+                </div>
+                <div class="bg-surface-container p-5 rounded-3xl border border-white/5 shadow-xl">
+                    <div class="flex justify-between mb-4 items-center"><h2 class="text-sm font-bold text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">school</span> الطلاب</h2><button class="btn-open-modal bg-primary text-surface px-4 py-1.5 rounded-lg font-bold text-xs shadow-md hover:scale-105 transition-transform flex items-center gap-1" data-target="student-modal"><span class="material-symbols-outlined text-[16px]">person_add</span> تسجيل</button></div>
+                    <div class="overflow-x-auto custom-scrollbar pb-2"><table class="w-full text-right text-[11px] min-w-[450px]"><tbody id="admin-students-list"></tbody></table></div>
+                </div>
+            </div>
+        </section>
+        <section id="reports-page" class="page-section">
+            <div id="smart-alerts-container" class="mb-5 space-y-3 empty:hidden no-print"></div>
+            
+            <div class="bg-surface-container p-5 rounded-3xl flex flex-wrap justify-between mb-5 gap-4 shadow-xl border border-white/5 no-print">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20"><span class="material-symbols-outlined text-primary text-2xl">monitoring</span></div>
+                    <div><h1 class="text-base font-bold text-white">المحصلات المؤسسية</h1><p class="text-[9px] text-gray-400 mt-0.5">تحليل الأداء والانضباط</p></div>
+                </div>
+                <div class="flex flex-wrap gap-2 items-center bg-surface p-1.5 rounded-xl border border-white/5">
+                    <select id="report-scope" class="p-2 text-[10px] rounded-lg bg-transparent border-none focus:ring-0">
+                        <option value="mosque">المسجد بالكامل</option>
+                        <option value="ring">حلقة محددة</option>
+                    </select>
+                    <select id="report-ring-filter" class="p-2 text-[10px] rounded-lg bg-transparent border-none hidden"></select>
+                    <div class="w-[1px] h-6 bg-white/10 hidden md:block"></div>
+                    <select id="report-timeframe" class="p-2 text-[10px] rounded-lg bg-transparent border-none">
+                        <option value="today">اليوم</option>
+                        <option value="week">الأسبوع</option>
+                        <option value="month">الشهر</option>
+                        <option value="custom">مخصص</option>
+                    </select>
+             <div id="custom-date-range" class="hidden gap-1 p-1 bg-surface-container rounded-lg">
+                        <input type="date" id="rep-start" class="p-1 text-[10px] bg-transparent border-none font-mono">
+                        <input type="date" id="rep-end" class="p-1 text-[10px] bg-transparent border-none font-mono">
+                    </div> <button id="btn-generate-report" class="bg-primary text-surface px-4 py-2 rounded-lg font-bold text-[10px] flex items-center gap-1 shadow-md hover:scale-105 transition-transform"><span class="material-symbols-outlined text-[14px]">sync</span> تحديث</button>
+                    
+                    <button id="btn-print-report" class="bg-surface-container border border-white/10 text-white px-3 py-2 rounded-lg text-[10px] hover:bg-white/5 transition-colors"><span class="material-symbols-outlined text-[16px]">print</span></button>
+                    
+                    <button id="btn-export-excel-direct" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-[10px] flex items-center gap-1 shadow-md hover:bg-emerald-500 transition-all"><span class="material-symbols-outlined text-[14px]">description</span> تصدير Excel</button>
+                    
+                </div>
+            </div>
+            
+           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                <div class="stat-card p-5 rounded-2xl relative overflow-hidden"><div class="text-gray-400 text-[10px] mb-2 font-bold">الحضور الفعلي</div><div class="text-3xl font-black text-white font-mono" id="kpi-present">0</div></div>
+                <div class="stat-card p-5 rounded-2xl relative overflow-hidden"><div class="text-gray-400 text-[10px] mb-2 font-bold">نسبة الحضور</div><div class="text-3xl font-black text-blue-400 font-mono" id="kpi-att-rate">0%</div></div>
+                <div class="stat-card p-5 rounded-2xl relative overflow-hidden"><div class="text-gray-400 text-[10px] mb-2 font-bold">المميزين (أنجزوا)</div><div class="text-3xl font-black text-emerald-400 font-mono" id="kpi-achievers">0</div></div>
+                <div class="stat-card p-5 rounded-2xl relative overflow-hidden"><div class="text-gray-400 text-[10px] mb-2 font-bold">المتانة التشغيلية</div><div class="text-3xl font-black text-primary font-mono" id="kpi-achieve-rate">0%</div></div>
+            </div>
+            
+            <div class="bg-surface-container p-5 rounded-3xl mb-5 shadow-xl border border-white/5 no-print">
+    <h3 class="text-xs text-gray-400 mb-3 font-bold">مقارنة الحلقات التنافسية</h3>
+    <div style="position: relative; height: 250px; width: 100%;"><canvas id="ringComparisonChart"></canvas></div>
+</div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                <div class="bg-surface-container p-6 rounded-3xl flex flex-col shadow-xl border border-white/5 h-full"><div class="flex justify-between mb-4 items-center"><h3 class="text-sm font-bold text-primary flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">groups</span> تقارير الحلقات</h3></div><div class="overflow-x-auto flex-1 custom-scrollbar"><table class="w-full text-right text-[11px] min-w-[300px]"><thead class="text-gray-400 border-b border-white/10"><tr><th class="pb-3 w-1/3">الحلقة</th><th class="pb-3 text-center w-1/4">أرقام (ح/غ/إ)</th><th class="pb-3 text-center w-1/4">النسب (ح/إ)</th><th class="pb-3 text-center no-print">إجراء</th></tr></thead><tbody id="rep-rings-table"></tbody></table></div></div>
+                <div class="bg-surface-container p-6 rounded-3xl flex flex-col shadow-xl border border-white/5 h-full"><div class="flex justify-between mb-4 items-center"><h3 class="text-sm font-bold text-emerald-500 flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">person</span> التفصيل الفردي للطلاب</h3></div><div class="overflow-x-auto max-h-[350px] overflow-y-auto flex-1 custom-scrollbar"><table class="w-full text-right text-[11px] min-w-[400px]"><thead class="text-gray-400 sticky top-0 bg-surface-container border-b border-white/10 z-10"><tr><th class="pb-3 w-1/3">الاسم (الاستمرارية)</th><th class="pb-3 w-1/6">الحالة</th><th class="pb-3 w-1/3">الإنجاز والملاحظات</th><th class="pb-3 text-center no-print">الواتساب</th></tr></thead><tbody id="rep-students-table"></tbody></table></div></div>
+            </div>
+        </section>
+    </main>
+
+    <nav id="bottom-nav" class="fixed bottom-0 left-0 w-full bg-surface-container/95 backdrop-blur-3xl border-t border-white/5 px-4 py-3 flex justify-between items-center rounded-t-[2rem] z-[90] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] no-print">
+        <div class="flex gap-6 md:gap-16 mx-auto">
+            <button id="nav-att" class="nav-btn nav-item flex flex-col items-center gap-1 active transition-colors hover:text-emerald-300" data-page="attendance"><div class="icon-container transition-transform duration-300"><span class="material-symbols-outlined text-[22px]">fact_check</span></div><span class="text-[10px] font-bold">التفقد اليومي</span></button>
+            <button id="nav-admin" class="nav-btn nav-item flex flex-col items-center gap-1 hidden transition-colors hover:text-emerald-300" data-page="admin"><div class="icon-container transition-transform duration-300"><span class="material-symbols-outlined text-[22px]">dashboard_customize</span></div><span class="text-[10px] font-bold">لوحة الإدارة</span></button>
+            <button id="nav-reports" class="nav-btn nav-item flex flex-col items-center gap-1 hidden transition-colors hover:text-emerald-300" data-page="reports"><div class="icon-container transition-transform duration-300"><span class="material-symbols-outlined text-[22px]">monitoring</span></div><span class="text-[10px] font-bold">ذكاء الأعمال</span></button>
+        </div>
+        <button id="btn-logout-nav" class="absolute left-6 text-red-400 flex flex-col items-center gap-1 hover:text-red-300 transition-colors" title="إغلاق الجلسة"><div class="bg-red-500/10 p-2 rounded-full border border-red-500/20 hover:scale-110 transition-transform"><span class="material-symbols-outlined text-[18px]">logout</span></div></button>
+    </nav>
+<div id="official-print-template" class="hidden print:block bg-white text-black p-10 min-h-screen">
+    <div class="flex justify-between items-center border-b-2 border-black pb-6 mb-8">
+        <div class="text-right">
+            <h1 class="text-2xl font-black mb-1" id="print-header-mosque">اسم المسجد</h1>
+            <p class="text-sm font-bold">نظام "راسخ" للإدارة المؤسسية</p>
+        </div>
+        <div class="text-left text-xs font-mono">
+            <p>نطاق التقرير: <span id="print-range-display"></span></p>
+            <p>تاريخ الطباعة: <span id="print-current-date"></span></p>
+        </div>
+    </div>
+    
+    <table class="w-full border-collapse border border-black text-[9px]">
+        <thead>
+            <tr class="bg-gray-100">
+                <th class="border border-black p-2">الطالب</th>
+                <th class="border border-black p-2">الحلقة</th>
+                <th class="border border-black p-2 text-center">حضور</th>
+                <th class="border border-black p-2 text-center">تأخر</th>
+                <th class="border border-black p-2 text-center">الإنجاز (ص)</th>
+                <th class="border border-black p-2 text-right">سجل السرد</th>
+                <th class="border border-black p-2 text-right">سجل الاختبارات</th>
+            </tr>
+        </thead>
+        <tbody id="print-report-body">
+            </tbody>
+    </table>
+</div>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+/* ==========================================
+   ملف التنسيقات المخصص - منصة راسخ
+========================================== */
+
+/* 1. الإعدادات العامة للخطوط والخلفية */
+body { 
+    font-family: 'Tajawal', sans-serif; 
+    background-color: #0b1326; 
+    color: #dbe2fd; 
+    overflow-x: hidden; 
+}
+
+/* 2. تأثيرات تنقل الصفحات (Fade In) */
+.page-section { display: none; }
+.page-section.active { 
+    display: block; 
+    animation: fadeIn 0.4s ease-out; 
+}
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+/* 3. تنسيقات حقول الإدخال الاحترافية */
+input, select, textarea { 
+    background-color: #1f2a44 !important; 
+    border: none !important; 
+    border-bottom: 2px solid #31394d !important; 
+    border-radius: 6px 6px 0 0 !important; 
+    color: #dbe2fd !important; 
+    transition: all 0.3s ease; 
+    width: 100%; 
+}
+input:focus, select:focus, textarea:focus { 
+    border-bottom-color: #10b981 !important; 
+    outline: none; 
+    box-shadow: 0 1px 0 0 #10b981 !important;
+}
+
+/* === إخفاء الأسهم والتنسيق الشرطي الدائم === */
+
+/* 1. إخفاء سهم القوائم المنسدلة (الحضور/النتيجة) وتوسيط النص */
+select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: none !important;
+    padding-left: 0.5rem !important; 
+    padding-right: 0.5rem !important;
+    text-align: center !important; 
+    text-align-last: center !important;
+    cursor: pointer;
+}
+
+/* 2. إخفاء أسهم الزيادة والنقصان في حقول الأرقام (الصفحات) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+input[type="number"] {
+    -moz-appearance: textfield !important; /* لمتصفح فايرفوكس */
+}
+
+/* 3. فئات التلوين الشرطي (لإجبار المتصفح على تغيير اللون وتجاوز الحماية) */
+select.state-present, select.state-pass { 
+    background-color: rgba(16, 185, 129, 0.2) !important; 
+    color: #34d399 !important; 
+    border-bottom: 2px solid #10b981 !important; 
+}
+select.state-late { 
+    background-color: rgba(245, 158, 11, 0.2) !important; 
+    color: #fbbf24 !important; 
+    border-bottom: 2px solid #f59e0b !important; 
+}
+select.state-absent, select.state-fail { 
+    background-color: rgba(239, 68, 68, 0.2) !important; 
+    color: #f87171 !important; 
+    border-bottom: 2px solid #ef4444 !important; 
+}
+
+/* إصلاح تداخل السهم مع النص في الاتجاه العربي */
+select {
+    background-position: left 0.5rem center !important;
+    padding-left: 1.5rem !important;
+    padding-right: 0.5rem !important;
+}/* 3. تنسيقات حقول الإدخال الاحترافية */
+input, select, textarea { 
+    background-color: #1f2a44 !important; 
+    border: none !important; 
+    border-bottom: 2px solid #31394d !important; 
+    border-radius: 6px 6px 0 0 !important; 
+    color: #dbe2fd !important; 
+    transition: all 0.3s ease; 
+    width: 100%; 
+}
+
+/* إصلاح تداخل السهم مع النص في الاتجاه العربي */
+select {
+    background-position: left 0.5rem center !important;
+    padding-left: 1.5rem !important;
+    padding-right: 0.5rem !important;
+}
+input:focus, select:focus, textarea:focus { 
+    border-bottom-color: #10b981 !important; 
+    outline: none; 
+    box-shadow: 0 1px 0 0 #10b981 !important;
+}
+input[type="checkbox"] { 
+    background-color: transparent !important; 
+    border: 1px solid #31394d !important; 
+}
+
+/* 4. تنسيقات الأزرار والبطاقات (UI Components) */
+.nav-item.active { color: #10b981; }
+.nav-item.active .icon-container { 
+    background-color: rgba(16, 185, 129, 0.1); 
+    border-radius: 50%; 
+    padding: 8px; 
+}
+.stat-card { 
+    background: linear-gradient(145deg, #16223b, #1a2744); 
+    border: 1px solid rgba(255,255,255,0.05); 
+}
+.modal-overlay { 
+    backdrop-filter: blur(8px); 
+}
+
+/* 5. أزرار لوحة السرد والاختبار (المتفاعلة) */
+.part-btn { 
+    font-size: 10px; 
+    border-radius: 4px; 
+    background: #1f2a44; 
+    border: 1px solid #31394d; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    aspect-ratio: 1; 
+}
+.part-btn:hover { background: #31394d; }
+.part-btn.active { 
+    background: #10b981; 
+    color: #0b1326; 
+    font-weight: bold; 
+    border-color: #10b981; 
+    transform: scale(1.05); 
+}
+.part-btn.range { 
+    background: rgba(16, 185, 129, 0.3); 
+    border-color: #10b981; 
+}
+
+/* 6. شريط التمرير المخصص (Scrollbar) */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { 
+    background: #31394d; 
+    border-radius: 10px; 
+}
+::-webkit-scrollbar-thumb:hover { background: #10b981; }
+.custom-scrollbar::-webkit-scrollbar { height: 4px; }
+
+/* 7. إعدادات الطباعة للتقارير (Print Media) */
+@media print { 
+    /* إخفاء كل شيء في الموقع */
+    body > *:not(#official-print-template) { display: none !important; }
+    
+    /* إظهار قالب الطباعة فقط وتنسيقه */
+    #official-print-template { 
+        display: block !important; 
+        width: 100% !important; 
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+    }
+    
+    body { background: white !important; color: black !important; }
+    table { width: 100% !important; border-collapse: collapse !important; }
+    th, td { border: 1px solid black !important; padding: 4px !important; }
+}/* 8. تنسيقات إشعارات النظام الذكية (Toasts) */
+.toast { animation: slideInLeft 0.3s ease-out forwards; }
+.toast.hide { animation: fadeOut 0.3s ease-out forwards; }
+
+@keyframes slideInLeft { 
+    from { transform: translateX(-100%); opacity: 0; } 
+    to { transform: translateX(0); opacity: 1; } 
+}
+@keyframes fadeOut { 
+    to { opacity: 0; visibility: hidden; } 
+}
