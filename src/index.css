@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --color-primary-custom: #10b981;
+  --color-surface: #0b1326;
+  --color-container: #16223b;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-white font-sans antialiased;
+    direction: rtl;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-container border border-white/5 shadow-xl rounded-[2rem] p-6;
+  }
+  
+  .input-field {
+    @apply bg-[#1f2a44] border-none border-b-2 border-[#31394d] rounded-t-lg text-white transition-all duration-300 w-full focus:border-primary-custom focus:ring-0 focus:shadow-[0_1px_0_0_#10b981];
+  }
+
+  .btn-primary {
+    @apply bg-primary-custom text-surface font-bold rounded-xl shadow-lg shadow-primary-custom/20 hover:scale-[1.02] transition-transform;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 4px;
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #31394d;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #10b981;
+  }
+}
